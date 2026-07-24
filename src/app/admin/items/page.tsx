@@ -54,9 +54,10 @@ export default function ItemsPage() {
       
       // Convert file to base64 if provided
       if (formData.imageFile) {
-        const reader = new FileReader();
-        imageUrl = await new Promise((resolve) => {
+        imageUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error);
           reader.readAsDataURL(formData.imageFile!);
         });
       }
@@ -71,14 +72,19 @@ export default function ItemsPage() {
           imageUrl: imageUrl || undefined
         })
       });
+      
       if (res.ok) {
         setShowForm(false);
         setFormData({ id: '', name: '', description: '', price: '', imageFile: null });
         setSearchQuery('');
         fetchItems();
+        alert('Data produk berhasil disimpan!');
+      } else {
+        alert('Gagal menyimpan data produk');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error:', error);
+      alert('Terjadi kesalahan: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
