@@ -227,6 +227,7 @@ export default function ItemsPage() {
           <table>
             <thead>
               <tr>
+                <th>Gambar</th>
                 <th>Nama</th>
                 <th>Deskripsi</th>
                 <th>Harga</th>
@@ -236,11 +237,24 @@ export default function ItemsPage() {
             <tbody>
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>{searchQuery ? 'Tidak ada produk yang sesuai dengan pencarian.' : 'Belum ada data produk.'}</td>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>{searchQuery ? 'Tidak ada produk yang sesuai dengan pencarian.' : 'Belum ada data produk.'}</td>
                 </tr>
               ) : (
                 filteredItems.map(item => (
                   <tr key={item.id}>
+                    <td style={{ textAlign: 'center' }}>
+                      {item.imageUrl ? (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name}
+                          style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                          onClick={() => window.open(item.imageUrl, '_blank')}
+                          title="Klik untuk melihat gambar lebih besar"
+                        />
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>Tidak ada gambar</span>
+                      )}
+                    </td>
                     <td style={{ fontWeight: '500' }}>{item.name}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{item.description || '-'}</td>
                     <td>Rp {item.price.toLocaleString('id-ID')}</td>
