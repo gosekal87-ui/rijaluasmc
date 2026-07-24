@@ -44,6 +44,47 @@ export default function ItemsPage() {
     }
   };
 
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Resize jika lebih besar dari 800x600
+          const maxWidth = 800;
+          const maxHeight = 600;
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Convert dengan quality lebih rendah
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+      };
+      reader.onerror = () => reject(reader.error);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const url = isEditing ? `/api/items/${formData.id}` : '/api/items';
@@ -54,12 +95,18 @@ export default function ItemsPage() {
       
       // Convert file to base64 if provided
       if (formData.imageFile) {
-        imageUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(formData.imageFile!);
-        });
+        // Validasi ukuran file (max 5MB)
+        if (formData.imageFile.size > 5 * 1024 * 1024) {
+          alert('Ukuran file terlalu besar! Maksimal 5MB');
+          return;
+        }
+
+        try {
+          imageUrl = await compressImage(formData.imageFile);
+        } catch (error) {
+          alert('Gagal memproses gambar: ' + (error instanceof Error ? error.message : 'Unknown error'));
+          return;
+        }
       }
 
       const res = await fetch(url, {
@@ -73,6 +120,8 @@ export default function ItemsPage() {
         })
       });
       
+      const responseData = await res.json();
+      
       if (res.ok) {
         setShowForm(false);
         setFormData({ id: '', name: '', description: '', price: '', imageFile: null });
@@ -80,7 +129,8 @@ export default function ItemsPage() {
         fetchItems();
         alert('Data produk berhasil disimpan!');
       } else {
-        alert('Gagal menyimpan data produk');
+        console.error('Server error:', responseData);
+        alert('Gagal menyimpan data: ' + (responseData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error:', error);
