@@ -4,9 +4,10 @@ import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 let dbConfig;
-if (process.env.DATABASE_URL) {
+const envUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+if (envUrl) {
   try {
-    const url = new URL(process.env.DATABASE_URL);
+    const url = new URL(envUrl);
     dbConfig = {
       host: url.hostname,
       port: Number(url.port) || 3306,
