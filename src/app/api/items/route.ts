@@ -32,6 +32,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(item, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create item' }, { status: 500 });
+    console.error('POST /api/items error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to create item';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
