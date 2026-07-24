@@ -12,14 +12,24 @@ type Product = {
 
 export default function ItemsPage() {
   const [items, setItems] = useState<Product[]>([]);
+  const [filteredItems, setFilteredItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({ id: '', name: '', description: '', price: '', imageUrl: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', description: '', price: '', imageFile: null as File | null });
   const [isEditing, setIsEditing] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    const filtered = items.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredItems(filtered);
+  }, [searchQuery, items]);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -40,14 +50,31 @@ export default function ItemsPage() {
     const method = isEditing ? 'PUT' : 'POST';
 
     try {
+      let imageUrl = '';
+      
+      // Convert file to base64 if provided
+      if (formData.imageFile) {
+        const reader = new FileReader();
+        imageUrl = await new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(formData.imageFile!);
+        });
+      }
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          price: formData.price,
+          imageUrl: imageUrl || undefined
+        })
       });
       if (res.ok) {
         setShowForm(false);
-        setFormData({ id: '', name: '', description: '', price: '', imageUrl: '' });
+        setFormData({ id: '', name: '', description: '', price: '', imageFile: null });
+        setSearchQuery('');
         fetchItems();
       }
     } catch (error) {
@@ -61,7 +88,7 @@ export default function ItemsPage() {
       name: item.name,
       description: item.description || '',
       price: item.price.toString(),
-      imageUrl: item.imageUrl || ''
+      imageFile: null
     });
     setIsEditing(true);
     setShowForm(true);
@@ -85,7 +112,7 @@ export default function ItemsPage() {
         <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>Manajemen Produk</h1>
         <button 
           className="btn btn-primary" 
-          onClick={() => { setShowForm(!showForm); setIsEditing(false); setFormData({ id: '', name: '', description: '', price: '', imageUrl: '' }); }}
+          onClick={() => { setShowForm(!showForm); setIsEditing(false); setFormData({ id: '', name: '', description: '', price: '', imageFile: null }); }}
         >
           {showForm ? 'Batal' : '+ Tambah Produk'}
         </button>
@@ -110,8 +137,14 @@ export default function ItemsPage() {
               <textarea className="input-field" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>URL Gambar (Opsional)</label>
-              <input type="text" className="input-field" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Gambar Produk (Opsional)</label>
+              <input 
+                type="file" 
+                className="input-field" 
+                accept="image/*"
+                onChange={e => setFormData({...formData, imageFile: e.target.files?.[0] || null})} 
+              />
+              {formData.imageFile && <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>File terpilih: {formData.imageFile.name}</p>}
             </div>
             <div style={{ alignSelf: 'flex-end', marginTop: '1rem' }}>
               <button type="submit" className="btn btn-primary">Simpan Data</button>
@@ -119,6 +152,17 @@ export default function ItemsPage() {
           </form>
         </div>
       )}
+
+      <div style={{ marginBottom: '1.5rem' }}>
+        <input 
+          type="text"
+          className="input-field"
+          placeholder="Cari produk berdasarkan nama atau deskripsi..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={{ maxWidth: '100%' }}
+        />
+      </div>
 
       <div className="glass-panel table-container">
         {loading ? (
@@ -134,12 +178,12 @@ export default function ItemsPage() {
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 ? (
+              {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Belum ada data produk.</td>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>{searchQuery ? 'Tidak ada produk yang sesuai dengan pencarian.' : 'Belum ada data produk.'}</td>
                 </tr>
               ) : (
-                items.map(item => (
+                filteredItems.map(item => (
                   <tr key={item.id}>
                     <td style={{ fontWeight: '500' }}>{item.name}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{item.description || '-'}</td>
