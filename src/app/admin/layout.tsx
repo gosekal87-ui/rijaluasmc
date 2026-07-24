@@ -14,6 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard' },
     { name: 'Manajemen Produk', path: '/admin/items' },
+    { name: 'Pengaturan', path: '/admin/settings' },
   ];
 
   return (
